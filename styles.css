@@ -3,6 +3,11 @@
     src: url('D:/EDIT 2/Daily/script work/발로란트 내전 팀 생성기/FONT/LINESeedKR-Bd.woff') format('woff');
 }
 
+@font-face {
+    font-family: 'LineSeedSansJP';
+    src: url('D:/EDIT 2/Daily/script work/발로란트 내전 팀 생성기/FONT/LINESeedJP_OTF_Bd.woff') format('woff');
+}
+
 body {
     font-family: 'LineSeedSansKR', Arial, sans-serif;
     background-color: #1e1e2f;
@@ -15,6 +20,36 @@ body {
     width: 80%;
     margin: 20px auto;
     text-align: center;
+}
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.language-buttons {
+    display: flex;
+    gap: 10px;
+}
+
+.language-btn {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: none;
+    cursor: pointer;
+    background-color: #3b82f6;
+    color: white;
+    font-size: 14px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.language-btn.selected {
+    background-color: white;
+    color: #3b82f6;
 }
 
 h1 {
@@ -38,14 +73,14 @@ textarea {
     width: 90%;
     margin-bottom: 10px;
     padding: 10px;
-    font-size: 20px; /* 글꼴 크기 증가 */
+    font-size: 20px;
     background-color: #2e2e40;
     color: white;
     border: 1px solid #555;
     border-radius: 5px;
     text-align: center;
     resize: none;
-    font-family: 'LineSeedSansKR', Arial, sans-serif; /* 폰트 적용 */
+    font-family: 'LineSeedSansKR', Arial, sans-serif;
 }
 
 button {
