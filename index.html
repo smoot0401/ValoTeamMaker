@@ -8,7 +8,14 @@
 </head>
 <body>
     <div class="container">
-        <h1>발로란트 내전 팀 생성기</h1>
+        <div class="header">
+            <h1>발로란트 내전 팀 생성기</h1>
+            <div class="language-buttons">
+                <button id="btn-kr" class="language-btn">KR</button>
+                <button id="btn-jp" class="language-btn">JP</button>
+                <button id="btn-en" class="language-btn">EN</button>
+            </div>
+        </div>
         <div class="main-section">
             <!-- 왼쪽: 팀 생성 -->
             <div class="team-section">
@@ -49,22 +56,22 @@
 
             <!-- 오른쪽: 맵 선택과 내전 모집 -->
             <div class="map-section">
-                <h2>랜덤 맵 선택</h2>
+                <h2 id="map-selection-title">랜덤 맵 선택</h2>
                 <button id="generate-map">맵 선택</button>
-                <p id="selected-map"></p>
+                <p id="selected-map">선택된 맵:</p>
 
                 <!-- 내전 모집 -->
                 <div class="recruit-section">
                     <h2>내전 모집</h2>
-                    <textarea id="recruit-textarea" placeholder="멤버 이름을 한 줄씩 입력하세요"></textarea>
-                    <p id="current-members">현재 멤버 0명</p>
+                    <textarea id="recruit-textarea" placeholder="플레이어 1"></textarea>
+                    <p id="current-members">현재 멤버</p>
                     <button id="copy-members">현재 멤버 복사</button>
                 </div>
             </div>
         </div>
 
         <footer>
-            <p>made by smoot(@smoot0401)</p>
+            <p>made by smoot(X @smoot0401)</p>
             <p>ⓒ 2024. smoot all rights reserved.</p>
         </footer>
     </div>
