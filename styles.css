@@ -1,11 +1,11 @@
 @font-face {
     font-family: 'LineSeedSansKR';
-    src: url('D:/EDIT 2/Daily/script work/발로란트 내전 팀 생성기/FONT/LINESeedKR-Bd.woff') format('woff');
+    src: url('D:/EDIT 2/Daily/script work/발로란트 팀 생성기/FONT/LINESeedKR-Bd.woff') format('woff');
 }
 
 @font-face {
     font-family: 'LineSeedSansJP';
-    src: url('D:/EDIT 2/Daily/script work/발로란트 내전 팀 생성기/FONT/LINESeedJP_OTF_Bd.woff') format('woff');
+    src: url('D:/EDIT 2/Daily/script work/발로란트 팀 생성기/FONT/LINESeedJP_OTF_Bd.woff') format('woff');
 }
 
 body {
