@@ -31,8 +31,8 @@ let currentLanguage = "ko"; // 초기 언어 설정
 
 const translations = {
     ko: {
-        title: '발로란트 내전 팀 생성기',
-        heading: '발로란트 내전 팀 생성기',
+        title: '발로란트 팀 생성기',
+        heading: '발로란트 팀 생성기',
         team1Label: '팀 1 후보',
         team2Label: '팀 2 후보',
         generateTeamsButton: '팀 생성',
@@ -41,7 +41,7 @@ const translations = {
         defenseTeamLabel: '수비팀',
         copyTeamsButton: '결과 복사',
         generateMapButton: '맵 선택',
-        recruitSectionLabel: '내전 모집',
+        recruitSectionLabel: '모집',
         recruitTextarea: '멤버 이름을 한 줄씩 입력하세요',
         currentMembersLabel: '현재 멤버',
         copyMembersButton: '현재 멤버 복사',
@@ -51,8 +51,8 @@ const translations = {
         noMembersAlert: '멤버 목록이 비어 있습니다.'
     },
     jp: {
-        title: 'ヴァロラント内戦チームジェネレーター',
-        heading: 'ヴァロラント内戦チームジェネレーター',
+        title: 'VALORANTチームジェネレータ',
+        heading: 'VALORANTチームジェネレータ',
         team1Label: 'TEAM 1',
         team2Label: 'TEAM 2',
         generateTeamsButton: 'チーム生成',
@@ -61,7 +61,7 @@ const translations = {
         defenseTeamLabel: '防衛チーム',
         copyTeamsButton: '結果をコピー',
         generateMapButton: 'マップ選択',
-        recruitSectionLabel: '内戦募集',
+        recruitSectionLabel: 'メンバー募集',
         recruitTextarea: 'メンバー名を1行ずつ入力してください',
         currentMembersLabel: '現在のメンバー ',
         copyMembersButton: '現在のメンバーをコピー',
@@ -196,7 +196,7 @@ function generateMap() {
     document.getElementById("selected-map").textContent = `${translations[currentLanguage].selectedMapLabel} ${randomMap}`;
 }
 
-// 내전 모집 섹션
+// 팀 모집 섹션
 const recruitTextarea = document.getElementById("recruit-textarea");
 const currentMembersText = document.getElementById("current-members");
 const copyMembersButton = document.getElementById("copy-members");
