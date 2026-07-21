@@ -426,6 +426,31 @@ body{
   padding:14px 0;
 }
 
+.app-footer{
+  margin-top:24px;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:3px;
+  text-align:center;
+}
+.app-footer p{
+  margin:0;
+  font-size:11px;
+  color:var(--m3-outline);
+}
+.footer-x-link{
+  margin-top:6px;
+  display:inline-flex;
+  align-items:center;
+  gap:5px;
+  color:var(--m3-outline);
+  text-decoration:none;
+  font-size:11px;
+  transition:color .15s ease;
+}
+.footer-x-link:hover{color:var(--m3-on-surface-variant);}
+
 .toast{
   position:fixed;
   bottom:28px;
@@ -631,6 +656,15 @@ body{
       <div id="mapResultWrap"></div>
     </div>
   </section>
+
+  <footer class="app-footer">
+    <p>made by @smoot0401</p>
+    <p>ⓒ 2026. smoot All Rights Reserved.</p>
+    <a href="https://x.com/smoot0401" target="_blank" rel="noopener noreferrer" class="footer-x-link" title="@smoot0401">
+      <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+      <span>@smoot0401</span>
+    </a>
+  </footer>
 
 </div>
 
