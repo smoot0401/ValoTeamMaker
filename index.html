@@ -273,6 +273,11 @@ body{
   flex-direction:column;
   gap:10px;
 }
+.atk-def-swap-row{
+  display:flex;
+  justify-content:center;
+  margin-bottom:2px;
+}
 .balanced-row{
   display:grid;
   grid-template-columns:1fr 28px 1fr;
@@ -296,7 +301,9 @@ body{
   cursor:pointer;
   gap:6px;
   background:var(--m3-surface-container-low);
-  transition:border-color .15s ease, background .15s ease, transform .08s ease;
+  outline:0px solid transparent;
+  outline-offset:2px;
+  transition:border-color .15s ease, background .15s ease, transform .08s ease, outline-color .15s ease;
 }
 .team-slot:active{transform:scale(.98);}
 .team-slot.empty{
@@ -315,6 +322,10 @@ body{
   background:var(--m3-primary-container);
   color:var(--m3-on-primary-container);
 }
+.team-slot.has-vs{
+  outline-width:2px;
+  outline-style:dashed;
+}
 .team-slot .slot-name{
   font-size:14px;
   font-weight:700;
@@ -326,6 +337,23 @@ body{
   display:flex;
   gap:2px;
   flex-shrink:0;
+}
+.chip-icon-btn.vs-btn{
+  font-size:9px;
+  font-weight:800;
+}
+.chip-icon-btn.vs-btn.linked{opacity:1;}
+.chip-icon-btn.vs-btn.pending{
+  opacity:1;
+  animation:pulse 1s infinite;
+}
+@keyframes slotGlow{
+  0%{box-shadow:0 0 0 3px var(--m3-primary);}
+  70%{box-shadow:0 0 0 3px var(--m3-primary);}
+  100%{box-shadow:0 0 0 0px transparent;}
+}
+.team-slot.just-changed{
+  animation:slotGlow 1s ease;
 }
 
 .action-row{
@@ -494,15 +522,18 @@ body{
 }
 .small-btn:hover{border-color:var(--m3-primary);color:var(--m3-on-surface);}
 .small-btn:active{transform:scale(.96);}
+.small-btn:disabled{opacity:.4;cursor:not-allowed;}
+.small-btn:disabled:hover{border-color:var(--m3-outline-variant);color:var(--m3-on-surface-variant);}
 
 .map-list{
-  display:flex;
-  flex-direction:column;
-  gap:10px;
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:8px;
 }
 .map-box{
   position:relative;
-  height:76px;
+  height:64px;
+
   border-radius:var(--radius-m);
   overflow:hidden;
   cursor:pointer;
@@ -526,9 +557,11 @@ body{
   align-items:center;
   justify-content:center;
   color:#ffffff;
-  font-size:18px;
+  font-size:15px;
   font-weight:800;
-  letter-spacing:.02em;
+  letter-spacing:.01em;
+  padding:0 6px;
+  text-align:center;
   text-shadow:0 1px 4px rgba(0,0,0,.6);
 }
 .map-box .off-badge{
@@ -621,6 +654,9 @@ body{
   <section id="balancedView" class="menu-view active">
     <div class="card">
       <h2 style="font-size:15px;font-weight:800;margin:0 0 14px;">맞밸런스 팀 배치</h2>
+      <div class="atk-def-swap-row">
+        <button class="small-btn" id="atkDefSwapBtn">⇅ 공수교대</button>
+      </div>
       <div class="balanced-grid" id="balancedGrid"></div>
       <div class="action-row">
         <button class="btn btn-filled" id="shuffleBtn" disabled>팀 섞기</button>
@@ -726,6 +762,7 @@ MAPS.forEach(function(m){ MAP_MAP[m.id]=m; });
 var META_MAP_IDS = ['bind','haven','split','ascent'];
 
 var LINK_COLORS = ['#4c8bf5','#5fd97a','#f2ca4c','#c774e0','#ff8a4c'];
+var VS_COLORS = ['#ff6b6b','#4dd0e1','#ffd166','#b388ff','#69f0ae'];
 var STORAGE_KEY = 'vlrTeamGenState_v1';
 var MAX_MEMBERS = 10;
 var MAX_HISTORY = 60;
@@ -737,6 +774,7 @@ function defaultState(){
     menu:'balanced',
     members:[], // {id,name,placement:{row,col}|null,tier:string|null}
     links:[], // {a:id,b:id,color}
+    vsLinks:[], // {a:id,b:id,color} - forced-opposite-side pairs
     tierTeams:null, // {teamA:[id..],teamB:[id..]}
     tierCandidates:null, // [{teamA,teamB,diff}]
     tierSelectedIndex:-1,
@@ -752,6 +790,8 @@ function defaultMapEnabled(){
 }
 var state = loadState();
 var pendingLinkId = null; // memberId awaiting pairing
+var pendingVsId = null; // memberId awaiting a VS (forced-opposite) pairing
+var highlightRows = []; // row indices to briefly glow after a reshuffle
 var selection = null; // {loc:'list', id} | {loc:'balanced', row, col} | {loc:'tier', team:'teamA'|'teamB', idx}
 var editingId = null; // member id currently being renamed
 var history = [];
@@ -798,6 +838,7 @@ var balancedGrid = $('#balancedGrid');
 var shuffleBtn = $('#shuffleBtn');
 var reshuffleBtn = $('#reshuffleBtn');
 var copyBalancedBtn = $('#copyBalancedBtn');
+var atkDefSwapBtn = $('#atkDefSwapBtn');
 var generateTierBtn = $('#generateTierBtn');
 var tierCandidatesEl = $('#tierCandidates');
 var tierResultWrap = $('#tierResultWrap');
@@ -837,6 +878,16 @@ function linkPartner(id){
 function removeLinksFor(id){
   state.links = state.links.filter(function(l){ return l.a!==id && l.b!==id; });
 }
+function memberVs(id){
+  for(var i=0;i<state.vsLinks.length;i++){
+    var l = state.vsLinks[i];
+    if(l.a===id||l.b===id) return l;
+  }
+  return null;
+}
+function removeVsLinksFor(id){
+  state.vsLinks = state.vsLinks.filter(function(l){ return l.a!==id && l.b!==id; });
+}
 function showToast(msg){
   toastEl.textContent = msg;
   toastEl.classList.add('show');
@@ -857,6 +908,7 @@ function addMember(name){
   if(!name) return;
   if(state.members.length>=MAX_MEMBERS) return;
   cancelPendingLink();
+  cancelPendingVs();
   snapshot();
   state.members.push({id:uid(), name:name, placement:null, tier:null});
   persist(); renderAll();
@@ -867,15 +919,18 @@ function renameMember(id, newName){
   if(!m) return;
   if(!newName){ renderAll(); return; }
   cancelPendingLink();
+  cancelPendingVs();
   snapshot();
   m.name = newName;
   persist(); renderAll();
 }
 function deleteMember(id){
   cancelPendingLink();
+  cancelPendingVs();
   snapshot();
   state.members = state.members.filter(function(m){ return m.id!==id; });
   removeLinksFor(id);
+  removeVsLinksFor(id);
   if(state.tierTeams){
     state.tierTeams.teamA = state.tierTeams.teamA.filter(function(x){return x!==id;});
     state.tierTeams.teamB = state.tierTeams.teamB.filter(function(x){return x!==id;});
@@ -992,6 +1047,7 @@ function locationOfMember(id){
 function handleClick(target){
   // target: {loc:'list', id} | {loc:'balanced', row, col} | {loc:'tier', team, idx}
   if(pendingLinkId!==null){ pendingLinkId = null; }
+  if(pendingVsId!==null){ pendingVsId = null; }
   var targetMember = getTargetMember(target);
 
   if(!selection){
@@ -1075,6 +1131,7 @@ function renderBalancedGrid(){
   var filledCount = state.members.filter(function(m){return m.placement;}).length;
   var full = filledCount>=10;
   shuffleBtn.disabled = !full;
+  atkDefSwapBtn.disabled = !full;
 }
 
 function buildSlot(row, col, label){
@@ -1083,11 +1140,17 @@ function buildSlot(row, col, label){
   slot.className = 'team-slot ' + (occupant ? 'filled' : 'empty');
   var isSelected = occupant && selection && selection.loc==='balanced' && selection.row===row && selection.col===col;
   if(isSelected) slot.classList.add('selected');
+  if(highlightRows.indexOf(row)!==-1) slot.classList.add('just-changed');
 
   var link = occupant ? memberLink(occupant.id) : null;
   if(link){
     slot.style.borderColor = link.color;
     slot.style.boxShadow = 'inset 0 0 0 1.5px ' + link.color;
+  }
+  var vs = occupant ? memberVs(occupant.id) : null;
+  if(vs){
+    slot.classList.add('has-vs');
+    slot.style.outlineColor = vs.color;
   }
 
   if(occupant){
@@ -1101,7 +1164,7 @@ function buildSlot(row, col, label){
 
     var linkBtn = document.createElement('button');
     linkBtn.className = 'chip-icon-btn link-btn';
-    linkBtn.title = '연동';
+    linkBtn.title = '연동 (같은 팀 고정)';
     linkBtn.textContent = '🔗';
     if(link) linkBtn.classList.add('linked');
     if(pendingLinkId===occupant.id) linkBtn.classList.add('pending');
@@ -1111,6 +1174,20 @@ function buildSlot(row, col, label){
       toggleLink(mem.id);
     };}(occupant));
     actions.appendChild(linkBtn);
+
+    var vsBtn = document.createElement('button');
+    vsBtn.className = 'chip-icon-btn vs-btn';
+    vsBtn.title = 'VS (반드시 상대편)';
+    vsBtn.textContent = 'VS';
+    if(vs) vsBtn.classList.add('linked');
+    if(pendingVsId===occupant.id) vsBtn.classList.add('pending');
+    if(vs) vsBtn.style.color = vs.color;
+    vsBtn.addEventListener('click', function(mem){ return function(e){
+      e.stopPropagation();
+      toggleVs(mem.id);
+    };}(occupant));
+    actions.appendChild(vsBtn);
+
     slot.appendChild(actions);
 
     slot.addEventListener('click', function(){ handleClick({loc:'balanced', row:row, col:col}); });
@@ -1123,6 +1200,9 @@ function buildSlot(row, col, label){
 
 function cancelPendingLink(){
   pendingLinkId = null;
+}
+function cancelPendingVs(){
+  pendingVsId = null;
 }
 
 function toggleLink(id){
@@ -1169,6 +1249,44 @@ function toggleLink(id){
   showToast('연동할 상대의 🔗 버튼을 눌러주세요');
 }
 
+function toggleVs(id){
+  if(pendingVsId===id){
+    pendingVsId = null;
+    renderAll();
+    return;
+  }
+  if(pendingVsId!==null){
+    var m1 = getMember(pendingVsId), m2 = getMember(id);
+    if(m1 && m2 && m1.placement && m2.placement && m1.placement.row===m2.placement.row){
+      // same balanced row - already always on opposite sides, restart pending on the newly clicked one
+      pendingVsId = id;
+      renderAll();
+      return;
+    }
+    snapshot();
+    // each member can only be part of one VS pairing at a time
+    state.vsLinks = state.vsLinks.filter(function(l){ return l.a!==pendingVsId && l.b!==pendingVsId && l.a!==id && l.b!==id; });
+    var usedColors = state.vsLinks.map(function(l){return l.color;});
+    var color = VS_COLORS.find(function(c){ return usedColors.indexOf(c)===-1; }) || VS_COLORS[state.vsLinks.length % VS_COLORS.length];
+    state.vsLinks.push({a:pendingVsId, b:id, color:color});
+    pendingVsId = null;
+    persist(); renderAll();
+    showToast('두 멤버가 반드시 상대편으로 지정되었습니다');
+    return;
+  }
+  var existing = memberVs(id);
+  if(existing){
+    snapshot();
+    state.vsLinks = state.vsLinks.filter(function(l){ return l!==existing; });
+    persist(); renderAll();
+    showToast('VS 지정이 해제되었습니다');
+    return;
+  }
+  pendingVsId = id;
+  renderAll();
+  showToast('반드시 상대편으로 둘 사람의 VS 버튼을 눌러주세요');
+}
+
 /* ---------------- Shuffle (balanced) ---------------- */
 function currentRowCols(){
   // returns array[5] of {a: memberId|null at col0, b: memberId|null at col1}
@@ -1208,8 +1326,15 @@ function computeShuffleBits(prevBits){
     var pa = memberRowCol[l.a], pb = memberRowCol[l.b];
     if(!pa || !pb) return;
     if(pa.row===pb.row) return;
-    // constraint: s_i xor s_j == colA xor colB
+    // constraint: s_i xor s_j == colA xor colB (must land on the SAME side)
     union(pa.row, pb.row, pa.col ^ pb.col);
+  });
+  state.vsLinks.forEach(function(l){
+    var pa = memberRowCol[l.a], pb = memberRowCol[l.b];
+    if(!pa || !pb) return;
+    if(pa.row===pb.row) return;
+    // constraint: s_i xor s_j == NOT(colA xor colB) (must land on OPPOSITE sides)
+    union(pa.row, pb.row, 1 ^ (pa.col ^ pb.col));
   });
   // assign roots randomly, then derive others
   var rootChoice = {};
@@ -1237,8 +1362,9 @@ function applyShuffleBits(bits){
 }
 
 // groups of rows that must move together as one unit, based on the CURRENT
-// (already link-consistent) arrangement. Flipping every row in a group together
-// keeps any linked pair on the same side, since they're on the same side already.
+// (already constraint-consistent) arrangement. Flipping every row in a group
+// together preserves both "same side" (link) and "opposite side" (vs) pairs,
+// since a uniform flip of both sides of any relation preserves that relation.
 function getRowComponents(){
   var parent = [0,1,2,3,4];
   function find(x){ return parent[x]===x ? x : (parent[x]=find(parent[x])); }
@@ -1250,6 +1376,11 @@ function getRowComponents(){
     if(rowObj.right) memberRow[rowObj.right.id] = idx;
   });
   state.links.forEach(function(l){
+    var ra = memberRow[l.a], rb = memberRow[l.b];
+    if(ra===undefined || rb===undefined || ra===rb) return;
+    union(ra, rb);
+  });
+  state.vsLinks.forEach(function(l){
     var ra = memberRow[l.a], rb = memberRow[l.b];
     if(ra===undefined || rb===undefined || ra===rb) return;
     union(ra, rb);
@@ -1288,8 +1419,31 @@ function computeReshuffleBits(){
 
 function doShuffle(isReshuffle){
   cancelPendingLink();
+  cancelPendingVs();
   snapshot();
   var bits = isReshuffle ? computeReshuffleBits() : computeShuffleBits();
+  applyShuffleBits(bits);
+  state.lastShuffle = bits;
+  persist(); renderAll();
+  reshuffleBtn.classList.remove('hidden');
+  copyBalancedBtn.classList.remove('hidden');
+
+  if(isReshuffle){
+    highlightRows = bits.reduce(function(acc, b, idx){ if(b===1) acc.push(idx); return acc; }, []);
+    renderBalancedGrid();
+    clearTimeout(doShuffle._t);
+    doShuffle._t = setTimeout(function(){
+      highlightRows = [];
+      renderBalancedGrid();
+    }, 1000);
+  }
+}
+
+function doAttackDefenseSwap(){
+  cancelPendingLink();
+  cancelPendingVs();
+  snapshot();
+  var bits = [1,1,1,1,1];
   applyShuffleBits(bits);
   state.lastShuffle = bits;
   persist(); renderAll();
@@ -1401,6 +1555,7 @@ function generateTierCandidates(){
     return {teamA:t.teamA, teamB:t.teamB, diff:p.diff};
   });
   cancelPendingLink();
+  cancelPendingVs();
   clearSelection();
   snapshot();
   state.tierCandidates = top;
@@ -1412,6 +1567,7 @@ function generateTierCandidates(){
 function selectCandidate(idx){
   if(!state.tierCandidates || !state.tierCandidates[idx]) return;
   cancelPendingLink();
+  cancelPendingVs();
   snapshot();
   state.tierSelectedIndex = idx;
   var c = state.tierCandidates[idx];
@@ -1582,6 +1738,7 @@ function renderMapResult(){
 function switchMenu(menu){
   state.menu = menu;
   pendingLinkId = null;
+  pendingVsId = null;
   clearSelection();
   editingId = null;
   persist();
@@ -1630,6 +1787,7 @@ document.querySelectorAll('.menu-tab').forEach(function(btn){
 $('#copyMembersBtn').addEventListener('click', copyMembers);
 shuffleBtn.addEventListener('click', function(){ if(!shuffleBtn.disabled) doShuffle(false); });
 reshuffleBtn.addEventListener('click', function(){ doShuffle(true); });
+atkDefSwapBtn.addEventListener('click', function(){ if(!atkDefSwapBtn.disabled) doAttackDefenseSwap(); });
 copyBalancedBtn.addEventListener('click', copyBalancedTeams);
 generateTierBtn.addEventListener('click', function(){ if(!generateTierBtn.disabled) generateTierCandidates(); });
 copyTierBtn.addEventListener('click', copyTierTeams);
@@ -1665,11 +1823,11 @@ resetBtnEl.addEventListener('click', function(){
   resetConfirmPending = false;
   resetBtnEl.style.background = '';
   resetBtnEl.style.color = '';
-  history = [];
+  snapshot();
   var theme = state.theme;
   state = defaultState();
   state.theme = theme;
-  pendingLinkId = null; clearSelection(); editingId = null;
+  pendingLinkId = null; pendingVsId = null; clearSelection(); editingId = null;
   persist(); renderAll();
   showToast('초기화되었습니다');
 });
